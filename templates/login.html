@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card small">
+    <h2>Login</h2>
+    <form action="{{ url_for('login') }}" method="post">
+        <label for="username">Usuario</label>
+        <input id="username" name="username" type="text" required>
+
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" required>
+
+        <button type="submit">Entrar</button>
+    </form>
+    <p class="hint">Acesso inicial: admin / admin123</p>
+</section>
+{% endblock %}

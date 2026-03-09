@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+    <article class="card">
+        <h2>1) Marca da cesta basica</h2>
+        <form action="{{ url_for('set_brand') }}" method="post">
+            <label for="basket_brand">Marca</label>
+            <input id="basket_brand" name="basket_brand" type="text" required>
+            <button type="submit">Salvar marca</button>
+        </form>
+        <p class="hint">
+            Marca atual:
+            <strong>{{ cycle.basket_brand if cycle and cycle.basket_brand else "Nao definida" }}</strong>
+        </p>
+    </article>
+
+    <article class="card">
+        <h2>2) Dia que a cesta chega na prefeitura</h2>
+        <form action="{{ url_for('set_arrival') }}" method="post">
+            <label for="arrival_date">Data de chegada</label>
+            <input id="arrival_date" name="arrival_date" type="date" required>
+            <button type="submit">Salvar dia de chegada</button>
+        </form>
+        {% if cycle %}
+        <p class="hint">Ultima data registrada: <strong>{{ cycle.arrival_date }}</strong></p>
+        {% else %}
+        <p class="hint">Nenhuma data registrada ainda.</p>
+        {% endif %}
+        <p class="hint">O sistema limpa automaticamente apos 27 dias da ultima data registrada.</p>
+    </article>
+
+    <article class="card">
+        <h2>3) Dia que a cesta fica disponivel</h2>
+        <form action="{{ url_for('set_available_date') }}" method="post">
+            <label for="available_date">Data de disponibilidade</label>
+            <input id="available_date" name="available_date" type="date" required>
+            <button type="submit">Salvar dia disponivel</button>
+        </form>
+        <p class="hint">
+            Data disponivel atual:
+            <strong>{{ cycle.available_date if cycle and cycle.available_date else "Nao definida" }}</strong>
+        </p>
+    </article>
+
+    <article class="card">
+        <h2>4) Bater cracha no USB Reader</h2>
+        <form action="{{ url_for('claim_basket') }}" method="post">
+            <label for="rfid_tag">Tag RFID (bata o cracha no leitor)</label>
+            <input id="rfid_tag" name="rfid_tag" type="text" autocomplete="off" autofocus required>
+            <button type="button" id="activate_reader">Ativar USB Reader</button>
+            <button type="submit">Registrar retirada pelo cracha</button>
+        </form>
+        <p class="hint">Regra: se ja retirou no mes, nao pode retirar de novo.</p>
+    </article>
+</section>
+
+<section class="card">
+    <h2>Ultimas retiradas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Data/Hora</th>
+                <th>Nome</th>
+                <th>Tag RFID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for claim in claims %}
+            <tr>
+                <td>{{ claim.claim_date }}</td>
+                <td>{{ claim.name }}</td>
+                <td>{{ claim.rfid_tag }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">Nenhuma retirada registrada.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<script>
+    const rfidInput = document.getElementById("rfid_tag");
+    const activateButton = document.getElementById("activate_reader");
+    if (rfidInput) {
+        rfidInput.focus();
+    }
+    if (activateButton && rfidInput) {
+        activateButton.addEventListener("click", () => {
+            rfidInput.focus();
+            rfidInput.select();
+        });
+    }
+</script>
+{% endblock %}

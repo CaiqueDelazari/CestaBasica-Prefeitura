@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid">
+    <article class="card">
+        <h2>Cadastrar servidor</h2>
+        <form action="{{ url_for('employees') }}" method="post">
+            <label for="name">Nome</label>
+            <input id="name" name="name" type="text" required>
+
+            <label for="rfid_tag">Tag RFID</label>
+            <input id="rfid_tag" name="rfid_tag" type="text" required>
+
+            <button type="submit">Cadastrar</button>
+        </form>
+    </article>
+
+    <article class="card">
+        <h2>Servidores cadastrados</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Tag RFID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.rfid_tag }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2">Nenhum servidor cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </article>
+</section>
+{% endblock %}

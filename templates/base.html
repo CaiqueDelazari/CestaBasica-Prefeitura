@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Cesta Basica Prefeitura" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <h1>Cesta Basica - Prefeitura</h1>
+        {% if session.get("user_id") %}
+        <nav>
+            <a href="{{ url_for('index') }}">Painel</a>
+            <a href="{{ url_for('employees') }}">Servidores</a>
+            <form action="{{ url_for('logout') }}" method="post" class="inline-form">
+                <button type="submit">Sair</button>
+            </form>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <section class="messages">
+                    {% for category, message in messages %}
+                        <article class="message {{ category }}">{{ message }}</article>
+                    {% endfor %}
+                </section>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
