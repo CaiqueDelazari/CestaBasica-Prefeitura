@@ -1,57 +1,94 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="grid">
-    <article class="card">
-        <h2>1) Marca da cesta basica</h2>
-        <form action="{{ url_for('set_brand') }}" method="post">
-            <label for="basket_brand">Marca</label>
-            <input id="basket_brand" name="basket_brand" type="text" required>
-            <button type="submit">Salvar marca</button>
-        </form>
-        <p class="hint">
-            Marca atual:
-            <strong>{{ cycle.basket_brand if cycle and cycle.basket_brand else "Nao definida" }}</strong>
-        </p>
-    </article>
+<section class="card">
+    <h2>Cesta Basica</h2>
+    <div class="tabs">
+        <a class="tab {% if active_tab == 'fornecedor' %}active{% endif %}" href="{{ url_for('index', tab='fornecedor') }}">1) Fornecedor</a>
+        <a class="tab {% if active_tab == 'chegada' %}active{% endif %}" href="{{ url_for('index', tab='chegada') }}">2) Dia de chegada</a>
+        <a class="tab {% if active_tab == 'disponivel' %}active{% endif %}" href="{{ url_for('index', tab='disponivel') }}">3) Dia disponivel</a>
+        <a class="tab {% if active_tab == 'retirada' %}active{% endif %}" href="{{ url_for('index', tab='retirada') }}">4) Retirada</a>
+    </div>
+</section>
 
-    <article class="card">
-        <h2>2) Dia que a cesta chega na prefeitura</h2>
-        <form action="{{ url_for('set_arrival') }}" method="post">
-            <label for="arrival_date">Data de chegada</label>
-            <input id="arrival_date" name="arrival_date" type="date" required>
-            <button type="submit">Salvar dia de chegada</button>
-        </form>
-        {% if cycle %}
-        <p class="hint">Ultima data registrada: <strong>{{ cycle.arrival_date }}</strong></p>
-        {% else %}
-        <p class="hint">Nenhuma data registrada ainda.</p>
-        {% endif %}
-        <p class="hint">O sistema limpa automaticamente apos 27 dias da ultima data registrada.</p>
-    </article>
+{% if active_tab == "fornecedor" %}
+<section class="card">
+    <h2>Fornecedor da cesta basica</h2>
+    <form action="{{ url_for('set_supplier') }}" method="post">
+        <label for="supplier_name">Fornecedor</label>
+        <input
+            id="supplier_name"
+            name="supplier_name"
+            type="text"
+            value="{{ cycle.supplier_name if cycle and cycle.supplier_name else '' }}"
+            required
+        >
+        <button type="submit">Salvar fornecedor</button>
+    </form>
+    <p class="hint">
+        Fornecedor atual:
+        <strong>{{ cycle.supplier_name if cycle and cycle.supplier_name else "Nao definido" }}</strong>
+    </p>
+    <p class="hint">Esse dado e preenchido 1 vez por ciclo (27 dias), podendo ser editado se necessario.</p>
+</section>
+{% endif %}
 
-    <article class="card">
-        <h2>3) Dia que a cesta fica disponivel</h2>
-        <form action="{{ url_for('set_available_date') }}" method="post">
-            <label for="available_date">Data de disponibilidade</label>
-            <input id="available_date" name="available_date" type="date" required>
-            <button type="submit">Salvar dia disponivel</button>
-        </form>
-        <p class="hint">
-            Data disponivel atual:
-            <strong>{{ cycle.available_date if cycle and cycle.available_date else "Nao definida" }}</strong>
-        </p>
-    </article>
+{% if active_tab == "chegada" %}
+<section class="card">
+    <h2>Dia que a cesta chega na prefeitura</h2>
+    <form action="{{ url_for('set_arrival') }}" method="post">
+        <label for="arrival_date">Data de chegada</label>
+        <input
+            id="arrival_date"
+            name="arrival_date"
+            type="date"
+            value="{{ cycle.arrival_date if cycle and cycle.arrival_date else '' }}"
+            required
+        >
+        <button type="submit">Salvar dia de chegada</button>
+    </form>
+    {% if cycle %}
+    <p class="hint">Ultima data registrada: <strong>{{ cycle.arrival_date }}</strong></p>
+    {% else %}
+    <p class="hint">Nenhuma data registrada ainda.</p>
+    {% endif %}
+    <p class="hint">Esse dado e preenchido 1 vez por ciclo (27 dias), podendo ser editado se necessario.</p>
+</section>
+{% endif %}
 
-    <article class="card">
-        <h2>4) Bater cracha no USB Reader</h2>
-        <form action="{{ url_for('claim_basket') }}" method="post">
-            <label for="rfid_tag">Tag RFID (bata o cracha no leitor)</label>
-            <input id="rfid_tag" name="rfid_tag" type="text" autocomplete="off" autofocus required>
-            <button type="button" id="activate_reader">Ativar USB Reader</button>
-            <button type="submit">Registrar retirada pelo cracha</button>
-        </form>
-        <p class="hint">Regra: se ja retirou no mes, nao pode retirar de novo.</p>
-    </article>
+{% if active_tab == "disponivel" %}
+<section class="card">
+    <h2>Dia que a cesta fica disponivel</h2>
+    <form action="{{ url_for('set_available_date') }}" method="post">
+        <label for="available_date">Data de disponibilidade</label>
+        <input
+            id="available_date"
+            name="available_date"
+            type="date"
+            value="{{ cycle.available_date if cycle and cycle.available_date else '' }}"
+            required
+        >
+        <button type="submit">Salvar dia disponivel</button>
+    </form>
+    <p class="hint">
+        Data disponivel atual:
+        <strong>{{ cycle.available_date if cycle and cycle.available_date else "Nao definida" }}</strong>
+    </p>
+    <p class="hint">Esse dado e preenchido 1 vez por ciclo (27 dias), podendo ser editado se necessario.</p>
+</section>
+{% endif %}
+
+{% if active_tab == "retirada" %}
+<section class="card">
+    <h2>Retirada da cesta (USB Reader)</h2>
+    <form action="{{ url_for('claim_basket') }}" method="post">
+        <label for="rfid_tag">Tag RFID (bata o cracha no leitor)</label>
+        <input id="rfid_tag" name="rfid_tag" type="text" autocomplete="off" autofocus required>
+        <button type="button" id="activate_reader">Ativar USB Reader</button>
+        <button type="submit">Registrar retirada pelo cracha</button>
+    </form>
+    <p class="hint">Esta tela e dedicada somente para retirada e validacao no banco de dados.</p>
+    <p class="hint">Aqui nao precisa preencher fornecedor/data toda vez: o ciclo mensal ja usa os dados salvos.</p>
+    <p class="hint">Regra: se ja retirou no mes, nao pode retirar de novo.</p>
 </section>
 
 <section class="card">
@@ -79,6 +116,7 @@
         </tbody>
     </table>
 </section>
+{% endif %}
 
 <script>
     const rfidInput = document.getElementById("rfid_tag");
