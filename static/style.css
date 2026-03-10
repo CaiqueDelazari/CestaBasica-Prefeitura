@@ -77,6 +77,14 @@ input {
     border-radius: 6px;
 }
 
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+}
+
 button {
     margin-top: 14px;
     padding: 10px 14px;
@@ -131,4 +139,33 @@ td {
 
 th {
     background: #f0f0f0;
+}
+
+.two-cols {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tab {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    background: #e8edf4;
+    color: #123a64;
+    font-weight: 700;
+}
+
+.tab.active {
+    background: #165a9b;
+    color: #fff;
 }

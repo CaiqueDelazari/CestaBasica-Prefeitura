@@ -9,6 +9,13 @@ Sistema web simples para controle de entrega de cesta basica com:
 - Bloqueio de segunda retirada no mesmo mes
 - Limpeza automatica dos registros apos 27 dias da ultima data de chegada
 
+Tambem inclui modulo de gestao de funcionarios com:
+
+- Cadastro completo (matricula, nome, vinculo, lotacao, secretaria, cargo, email e cartao)
+- Regra especial para lotacao Domicilio (matricula manual obrigatoria)
+- Geracao automatica de matricula para demais lotacoes
+- Filtros e abas de organizacao por categoria
+
 ## Requisitos
 
 - Python 3.10+ (testado com Python 3.14)
@@ -52,3 +59,9 @@ Sistema web simples para controle de entrega de cesta basica com:
 
 - O sistema verifica automaticamente se passaram 27 dias da ultima data de chegada registrada.
 - Se passou, ele limpa os registros de retirada e ciclo anterior, para iniciar novo ciclo.
+
+## Modulo de funcionarios
+
+- Acesse em: `http://127.0.0.1:5000/funcionarios`
+- SQL normalizado do modulo: `schema_funcionarios.sql`
+- Documento de arquitetura: `ARQUITETURA_FUNCIONARIOS.md`

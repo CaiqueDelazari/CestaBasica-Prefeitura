@@ -12,6 +12,7 @@
         {% if session.get("user_id") %}
         <nav>
             <a href="{{ url_for('index') }}">Painel</a>
+            <a href="{{ url_for('funcionarios') }}">Funcionarios</a>
             <a href="{{ url_for('employees') }}">Servidores</a>
             <form action="{{ url_for('logout') }}" method="post" class="inline-form">
                 <button type="submit">Sair</button>
