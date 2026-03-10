@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Cadastro de funcionario</h2>
+    <form action="{{ url_for('funcionarios') }}" method="post" class="grid two-cols">
+        <div>
+            <label for="registration_number">Matricula</label>
+            <input id="registration_number" name="registration_number" type="text" placeholder="Manual para Domicilio, opcional para os demais">
+        </div>
+
+        <div>
+            <label for="full_name">Nome</label>
+            <input id="full_name" name="full_name" type="text" required>
+        </div>
+
+        <div>
+            <label for="employment_bond_id">Vinculo</label>
+            <select id="employment_bond_id" name="employment_bond_id" required>
+                <option value="">Selecione</option>
+                {% for item in lookups.bonds %}
+                <option value="{{ item.id }}">{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="secretariat_id">Secretaria</label>
+            <select id="secretariat_id" name="secretariat_id" required>
+                <option value="">Selecione</option>
+                {% for item in lookups.secretariats %}
+                <option value="{{ item.id }}">{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="department_id">Lotacao</label>
+            <select id="department_id" name="department_id" required>
+                <option value="">Selecione</option>
+                {% for item in lookups.departments %}
+                <option value="{{ item.id }}" data-secretariat-id="{{ item.secretariat_id }}">
+                    {{ item.name }} - {{ item.secretariat_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="job_position_id">Cargo</label>
+            <select id="job_position_id" name="job_position_id" required>
+                <option value="">Selecione</option>
+                {% for item in lookups.positions %}
+                <option value="{{ item.id }}">{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required>
+        </div>
+
+        <div>
+            <label for="card_code">Cartao de acesso</label>
+            <input id="card_code" name="card_code" type="text" required>
+        </div>
+
+        <div class="full-width">
+            <button type="submit">Cadastrar funcionario</button>
+        </div>
+    </form>
+    <p class="hint">Regra: em Domicilio a matricula e manual; nos demais setores o sistema gera automaticamente quando vazio.</p>
+</section>
+
+<section class="card">
+    <h2>Categorias</h2>
+    <div class="tabs">
+        <a class="tab {% if active_tab == 'todos' %}active{% endif %}" href="{{ url_for('funcionarios', tab='todos') }}">Todos</a>
+        <a class="tab {% if active_tab == 'domicilio' %}active{% endif %}" href="{{ url_for('funcionarios', tab='domicilio') }}">Domicilio</a>
+        <a class="tab {% if active_tab == 'outros' %}active{% endif %}" href="{{ url_for('funcionarios', tab='outros') }}">Demais setores</a>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Filtros</h2>
+    <form action="{{ url_for('funcionarios') }}" method="get" class="grid two-cols">
+        <input type="hidden" name="tab" value="{{ active_tab }}">
+
+        <div>
+            <label for="nome">Nome</label>
+            <input id="nome" name="nome" type="text" value="{{ filters.nome }}">
+        </div>
+
+        <div>
+            <label for="matricula">Matricula</label>
+            <input id="matricula" name="matricula" type="text" value="{{ filters.matricula }}">
+        </div>
+
+        <div>
+            <label for="secretaria_id_filtro">Secretaria</label>
+            <select id="secretaria_id_filtro" name="secretaria_id">
+                <option value="">Todas</option>
+                {% for item in lookups.secretariats %}
+                <option value="{{ item.id }}" {% if filters.secretaria_id == item.id %}selected{% endif %}>
+                    {{ item.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="vinculo_id">Vinculo</label>
+            <select id="vinculo_id" name="vinculo_id">
+                <option value="">Todos</option>
+                {% for item in lookups.bonds %}
+                <option value="{{ item.id }}" {% if filters.vinculo_id == item.id %}selected{% endif %}>
+                    {{ item.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="full-width">
+            <button type="submit">Aplicar filtros</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Funcionarios cadastrados</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Matricula</th>
+                <th>Nome</th>
+                <th>Vinculo</th>
+                <th>Lotacao</th>
+                <th>Secretaria</th>
+                <th>Cargo</th>
+                <th>Email</th>
+                <th>Cartao</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in employees_list %}
+            <tr>
+                <td>{{ item.registration_number }}</td>
+                <td>{{ item.full_name }}</td>
+                <td>{{ item.bond_name }}</td>
+                <td>{{ item.department_name }}</td>
+                <td>{{ item.secretariat_name }}</td>
+                <td>{{ item.position_name }}</td>
+                <td>{{ item.email }}</td>
+                <td>{{ item.card_code }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8">Nenhum funcionario encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<script>
+    const secretariatSelect = document.getElementById("secretariat_id");
+    const departmentSelect = document.getElementById("department_id");
+
+    if (secretariatSelect && departmentSelect) {
+        const allOptions = Array.from(departmentSelect.querySelectorAll("option"));
+        const placeholder = allOptions[0];
+
+        function filterDepartments() {
+            const selectedSecretariat = secretariatSelect.value;
+            const currentValue = departmentSelect.value;
+
+            departmentSelect.innerHTML = "";
+            departmentSelect.appendChild(placeholder.cloneNode(true));
+
+            allOptions.slice(1).forEach((option) => {
+                if (!selectedSecretariat || option.dataset.secretariatId === selectedSecretariat) {
+                    const copy = option.cloneNode(true);
+                    if (copy.value === currentValue) {
+                        copy.selected = true;
+                    }
+                    departmentSelect.appendChild(copy);
+                }
+            });
+        }
+
+        secretariatSelect.addEventListener("change", filterDepartments);
+        filterDepartments();
+    }
+</script>
+{% endblock %}
