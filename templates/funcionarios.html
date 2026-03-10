@@ -1,14 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="card">
-    <h2>Cadastro de funcionario</h2>
-    <form action="{{ url_for('funcionarios') }}" method="post" class="grid two-cols">
+<section class="employee-panel">
+    <div class="employee-panel-header">
+        <h2>Adicionando novo funcionario</h2>
+        <button type="button" class="panel-close" aria-label="Fechar">×</button>
+    </div>
+
+    <form action="{{ url_for('funcionarios') }}" method="post" class="employee-form-grid">
         <div>
             <label for="registration_number">Matricula</label>
             <input id="registration_number" name="registration_number" type="text" placeholder="Manual para Domicilio, opcional para os demais">
         </div>
 
-        <div>
+        <div class="span-2">
             <label for="full_name">Nome</label>
             <input id="full_name" name="full_name" type="text" required>
         </div>
@@ -18,16 +22,6 @@
             <select id="employment_bond_id" name="employment_bond_id" required>
                 <option value="">Selecione</option>
                 {% for item in lookups.bonds %}
-                <option value="{{ item.id }}">{{ item.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div>
-            <label for="secretariat_id">Secretaria</label>
-            <select id="secretariat_id" name="secretariat_id" required>
-                <option value="">Selecione</option>
-                {% for item in lookups.secretariats %}
                 <option value="{{ item.id }}">{{ item.name }}</option>
                 {% endfor %}
             </select>
@@ -46,6 +40,21 @@
         </div>
 
         <div>
+            <label for="secretariat_id">Secretaria</label>
+            <select id="secretariat_id" name="secretariat_id" required>
+                <option value="">Selecione</option>
+                {% for item in lookups.secretariats %}
+                <option value="{{ item.id }}">{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="span-2">
+            <label for="local_name">Local</label>
+            <input id="local_name" name="local_name" type="text" placeholder="Campo visual">
+        </div>
+
+        <div>
             <label for="job_position_id">Cargo</label>
             <select id="job_position_id" name="job_position_id" required>
                 <option value="">Selecione</option>
@@ -55,18 +64,33 @@
             </select>
         </div>
 
-        <div>
-            <label for="email">Email</label>
+        <div class="span-2">
+            <label for="email">E-mail</label>
             <input id="email" name="email" type="email" required>
         </div>
 
         <div>
-            <label for="card_code">Cartao de acesso</label>
+            <label for="cell_phone">Celular</label>
+            <input id="cell_phone" name="cell_phone" type="text" placeholder="Campo visual">
+        </div>
+
+        <div>
+            <label for="card_code">Cartao</label>
             <input id="card_code" name="card_code" type="text" required>
         </div>
 
         <div class="full-width">
-            <button type="submit">Cadastrar funcionario</button>
+            <label for="observations">Observacoes</label>
+            <textarea id="observations" name="observations" rows="3" placeholder="Campo opcional"></textarea>
+        </div>
+
+        <div class="full-width switches">
+            <label class="switch-label"><input type="checkbox" name="has_basket_right" checked> Possui direito a cesta</label>
+            <label class="switch-label"><input type="checkbox" name="is_district_domicilio"> Distrito de Domicilio</label>
+        </div>
+
+        <div class="full-width">
+            <button type="submit" class="save-btn">Salvar</button>
         </div>
     </form>
     <p class="hint">Regra: em Domicilio a matricula e manual; nos demais setores o sistema gera automaticamente quando vazio.</p>

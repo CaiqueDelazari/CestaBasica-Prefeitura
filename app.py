@@ -58,6 +58,7 @@ def init_db():
             arrival_date TEXT NOT NULL,
             available_date TEXT,
             basket_brand TEXT,
+            supplier_name TEXT,
             created_at TEXT NOT NULL
         );
 
@@ -137,6 +138,16 @@ def init_db():
         db.execute("ALTER TABLE basket_cycles ADD COLUMN available_date TEXT")
     if "basket_brand" not in cycle_columns:
         db.execute("ALTER TABLE basket_cycles ADD COLUMN basket_brand TEXT")
+    if "supplier_name" not in cycle_columns:
+        db.execute("ALTER TABLE basket_cycles ADD COLUMN supplier_name TEXT")
+        db.execute(
+            """
+            UPDATE basket_cycles
+            SET supplier_name = basket_brand
+            WHERE supplier_name IS NULL
+              AND basket_brand IS NOT NULL
+            """
+        )
 
     admin = db.execute("SELECT id FROM users WHERE username = ?", ("admin",)).fetchone()
     if not admin:
@@ -212,7 +223,11 @@ def current_cycle():
     db = get_db()
     return db.execute(
         """
-        SELECT id, arrival_date, available_date, basket_brand
+        SELECT
+            id,
+            arrival_date,
+            available_date,
+            COALESCE(supplier_name, basket_brand) AS supplier_name
         FROM basket_cycles
         ORDER BY id DESC
         LIMIT 1
@@ -238,6 +253,10 @@ def require_login():
     if "user_id" not in session:
         return False
     return True
+
+
+def redirect_to_index_tab(tab_name):
+    return redirect(url_for("index", tab=tab_name))
 
 
 def normalize_text(value):
@@ -313,7 +332,16 @@ def index():
         LIMIT 20
         """
     ).fetchall()
-    return render_template("index.html", cycle=cycle, claims=claims)
+    allowed_tabs = {"fornecedor", "chegada", "disponivel", "retirada"}
+    active_tab = request.args.get("tab", "retirada")
+    if active_tab not in allowed_tabs:
+        active_tab = "retirada"
+    return render_template(
+        "index.html",
+        cycle=cycle,
+        claims=claims,
+        active_tab=active_tab,
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -351,42 +379,50 @@ def set_arrival():
         datetime.strptime(arrival_date, "%Y-%m-%d")
     except ValueError:
         flash("Data invalida. Use o formato correto.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("chegada")
 
     db = get_db()
-    db.execute(
-        "INSERT INTO basket_cycles (arrival_date, created_at) VALUES (?, ?)",
-        (arrival_date, datetime.now().isoformat(timespec="seconds")),
-    )
+    cycle = current_cycle()
+    if cycle:
+        db.execute(
+            "UPDATE basket_cycles SET arrival_date = ? WHERE id = ?",
+            (arrival_date, cycle["id"]),
+        )
+    else:
+        db.execute(
+            "INSERT INTO basket_cycles (arrival_date, created_at) VALUES (?, ?)",
+            (arrival_date, datetime.now().isoformat(timespec="seconds")),
+        )
     db.commit()
-    flash("Dia de chegada da cesta registrado com sucesso.", "success")
-    return redirect(url_for("index"))
+    flash("Dia de chegada salvo para o ciclo mensal atual.", "success")
+    return redirect_to_index_tab("chegada")
 
 
+@app.route("/set-supplier", methods=["POST"])
 @app.route("/set-brand", methods=["POST"])
-def set_brand():
+def set_supplier():
     if not require_login():
         return redirect(url_for("login"))
 
     clean_if_needed()
-    brand = request.form.get("basket_brand", "").strip()
-    if not brand:
-        flash("Informe a marca da cesta basica.", "error")
-        return redirect(url_for("index"))
+    supplier_name = request.form.get("supplier_name", "").strip()
+    if not supplier_name:
+        flash("Informe o fornecedor da cesta basica.", "error")
+        return redirect_to_index_tab("fornecedor")
 
     cycle = current_cycle()
     if not cycle:
         flash("Registre primeiro o dia de chegada da cesta.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("fornecedor")
 
     db = get_db()
     db.execute(
-        "UPDATE basket_cycles SET basket_brand = ? WHERE id = ?",
-        (brand, cycle["id"]),
+        "UPDATE basket_cycles SET supplier_name = ? WHERE id = ?",
+        (supplier_name, cycle["id"]),
     )
     db.commit()
-    flash("Marca da cesta basica salva com sucesso.", "success")
-    return redirect(url_for("index"))
+    flash("Fornecedor da cesta basica salvo para o ciclo mensal atual.", "success")
+    return redirect_to_index_tab("fornecedor")
 
 
 @app.route("/set-available-date", methods=["POST"])
@@ -400,12 +436,12 @@ def set_available_date():
         datetime.strptime(available_date, "%Y-%m-%d")
     except ValueError:
         flash("Data de disponibilidade invalida.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("disponivel")
 
     cycle = current_cycle()
     if not cycle:
         flash("Registre primeiro o dia de chegada da cesta.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("disponivel")
 
     db = get_db()
     db.execute(
@@ -414,7 +450,7 @@ def set_available_date():
     )
     db.commit()
     flash("Dia de disponibilidade salvo com sucesso.", "success")
-    return redirect(url_for("index"))
+    return redirect_to_index_tab("disponivel")
 
 
 @app.route("/claim", methods=["POST"])
@@ -426,15 +462,15 @@ def claim_basket():
     cycle = current_cycle()
     if not cycle:
         flash("Defina primeiro o dia de chegada da cesta.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("retirada")
     if not cycle["available_date"]:
         flash("Defina o dia em que a cesta esta disponivel.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("retirada")
 
     rfid_tag = request.form.get("rfid_tag", "").strip()
     if not rfid_tag:
         flash("Informe ou leia uma tag RFID.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("retirada")
 
     db = get_db()
     employee = db.execute(
@@ -443,7 +479,7 @@ def claim_basket():
     ).fetchone()
     if not employee:
         flash("Tag RFID nao cadastrada para nenhum servidor.", "error")
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("retirada")
 
     claimed = db.execute(
         """
@@ -461,7 +497,7 @@ def claim_basket():
             f"{employee['name']} ja retirou a cesta neste mes e nao pode retirar novamente.",
             "error",
         )
-        return redirect(url_for("index"))
+        return redirect_to_index_tab("retirada")
 
     db.execute(
         "INSERT INTO claims (employee_id, basket_cycle_id, claim_date) VALUES (?, ?, ?)",
@@ -469,7 +505,7 @@ def claim_basket():
     )
     db.commit()
     flash(f"Cesta entregue para {employee['name']}.", "success")
-    return redirect(url_for("index"))
+    return redirect_to_index_tab("retirada")
 
 
 @app.route("/employees", methods=["GET", "POST"])
