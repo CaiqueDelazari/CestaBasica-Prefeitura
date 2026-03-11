@@ -13,6 +13,7 @@
 {% if active_tab == "fornecedor" %}
 <section class="card">
     <h2>Fornecedor da cesta basica</h2>
+    {% if is_superadm_user %}
     <form action="{{ url_for('set_supplier') }}" method="post">
         <label for="supplier_name">Fornecedor</label>
         <input
@@ -24,6 +25,9 @@
         >
         <button type="submit">Salvar fornecedor</button>
     </form>
+    {% else %}
+    <p class="hint">Perfil adm nao altera fornecedor. Somente superadm pode editar.</p>
+    {% endif %}
     <p class="hint">
         Fornecedor atual:
         <strong>{{ cycle.supplier_name if cycle and cycle.supplier_name else "Nao definido" }}</strong>
@@ -35,6 +39,7 @@
 {% if active_tab == "chegada" %}
 <section class="card">
     <h2>Dia que a cesta chega na prefeitura</h2>
+    {% if is_superadm_user %}
     <form action="{{ url_for('set_arrival') }}" method="post">
         <label for="arrival_date">Data de chegada</label>
         <input
@@ -46,6 +51,9 @@
         >
         <button type="submit">Salvar dia de chegada</button>
     </form>
+    {% else %}
+    <p class="hint">Perfil adm nao altera a data de chegada. Somente superadm pode editar.</p>
+    {% endif %}
     {% if cycle %}
     <p class="hint">Ultima data registrada: <strong>{{ cycle.arrival_date }}</strong></p>
     {% else %}
@@ -58,6 +66,7 @@
 {% if active_tab == "disponivel" %}
 <section class="card">
     <h2>Dia que a cesta fica disponivel</h2>
+    {% if is_superadm_user %}
     <form action="{{ url_for('set_available_date') }}" method="post">
         <label for="available_date">Data de disponibilidade</label>
         <input
@@ -69,6 +78,9 @@
         >
         <button type="submit">Salvar dia disponivel</button>
     </form>
+    {% else %}
+    <p class="hint">Perfil adm nao altera a data disponivel. Somente superadm pode editar.</p>
+    {% endif %}
     <p class="hint">
         Data disponivel atual:
         <strong>{{ cycle.available_date if cycle and cycle.available_date else "Nao definida" }}</strong>
@@ -117,6 +129,38 @@
     </table>
 </section>
 {% endif %}
+
+<section class="card">
+    <details class="collapsible-list">
+        <summary>Log de acoes do sistema</summary>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Usuario</th>
+                    <th>Perfil</th>
+                    <th>Acao</th>
+                    <th>Detalhes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in recent_logs %}
+                <tr>
+                    <td>{{ row.created_at }}</td>
+                    <td>{{ row.username }}</td>
+                    <td>{{ row.role }}</td>
+                    <td>{{ row.action }}</td>
+                    <td>{{ row.details }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">Sem logs no momento.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+</section>
 
 <script>
     const rfidInput = document.getElementById("rfid_tag");

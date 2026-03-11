@@ -36,6 +36,15 @@ body {
     font-weight: 700;
 }
 
+.role-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .inline-form {
     margin: 0;
 }
@@ -168,6 +177,29 @@ th {
 .tab.active {
     background: #0e467f;
     color: #fff;
+}
+
+.collapsible-list summary {
+    cursor: pointer;
+    font-size: 28px;
+    font-weight: 700;
+    color: #163247;
+    list-style: none;
+}
+
+.collapsible-list summary::-webkit-details-marker {
+    display: none;
+}
+
+.collapsible-list summary::after {
+    content: " (clique para abrir)";
+    font-size: 13px;
+    color: #5b6e7f;
+    font-weight: 400;
+}
+
+.collapsible-list[open] summary::after {
+    content: " (clique para fechar)";
 }
 
 .employee-panel {

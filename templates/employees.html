@@ -3,15 +3,22 @@
 <section class="grid">
     <article class="card">
         <h2>Cadastrar servidor</h2>
+        {% if is_superadm_user %}
         <form action="{{ url_for('employees') }}" method="post">
+            <label for="registration_number">Matricula</label>
+            <input id="registration_number" name="registration_number" type="text" required>
+
             <label for="name">Nome</label>
-            <input id="name" name="name" type="text" required>
+            <input id="name" name="name" type="text" placeholder="Pode deixar em branco para usar nome da matricula">
 
             <label for="rfid_tag">Tag RFID</label>
             <input id="rfid_tag" name="rfid_tag" type="text" required>
 
             <button type="submit">Cadastrar</button>
         </form>
+        {% else %}
+        <p class="hint">Perfil adm so consulta esta tela. Cadastro de servidor e apenas para superadm.</p>
+        {% endif %}
     </article>
 
     <article class="card">
@@ -19,6 +26,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>Matricula</th>
                     <th>Nome</th>
                     <th>Tag RFID</th>
                 </tr>
@@ -26,12 +34,13 @@
             <tbody>
                 {% for item in items %}
                 <tr>
+                    <td>{{ item.registration_number if item.registration_number else "-" }}</td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.rfid_tag }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="2">Nenhum servidor cadastrado.</td>
+                    <td colspan="3">Nenhum servidor cadastrado.</td>
                 </tr>
                 {% endfor %}
             </tbody>

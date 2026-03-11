@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+    <h2>Historico de logs</h2>
+    <p class="hint">Mostra as ultimas 300 acoes registradas no sistema.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Data/Hora</th>
+                <th>Usuario</th>
+                <th>Perfil</th>
+                <th>Acao</th>
+                <th>Detalhes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in logs_list %}
+            <tr>
+                <td>{{ row.created_at }}</td>
+                <td>{{ row.username }}</td>
+                <td>{{ row.role }}</td>
+                <td>{{ row.action }}</td>
+                <td>{{ row.details }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">Nenhum log encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
