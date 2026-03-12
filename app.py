@@ -1,6 +1,8 @@
 import sqlite3
 from datetime import date, datetime, timedelta
+import os
 from pathlib import Path
+import re
 import unicodedata
 
 from flask import (
@@ -20,13 +22,20 @@ BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "cesta_basica.db"
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "trocar-essa-chave-em-producao"
+app.config["SECRET_KEY"] = os.environ.get(
+    "SECRET_KEY",
+    "dev-insecure-key-change-in-production",
+)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
 
 
 def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
 
 
@@ -76,11 +85,19 @@ def init_db():
 
         CREATE TABLE IF NOT EXISTS claims (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            employee_id INTEGER NOT NULL,
+            employee_id INTEGER,
+            hr_employee_id INTEGER,
             basket_cycle_id INTEGER NOT NULL,
             claim_date TEXT NOT NULL,
+            claim_source TEXT NOT NULL DEFAULT 'legacy',
+            CHECK (
+                (employee_id IS NOT NULL AND hr_employee_id IS NULL)
+                OR (employee_id IS NULL AND hr_employee_id IS NOT NULL)
+            ),
             UNIQUE(employee_id, basket_cycle_id),
+            UNIQUE(hr_employee_id, basket_cycle_id),
             FOREIGN KEY(employee_id) REFERENCES employees(id),
+            FOREIGN KEY(hr_employee_id) REFERENCES hr_employees(id),
             FOREIGN KEY(basket_cycle_id) REFERENCES basket_cycles(id)
         );
 
@@ -174,14 +191,7 @@ def init_db():
         """
     )
 
-    claim_columns = {
-        row["name"]
-        for row in db.execute("PRAGMA table_info(claims)").fetchall()
-    }
-    if "claim_source" not in claim_columns:
-        db.execute("ALTER TABLE claims ADD COLUMN claim_source TEXT NOT NULL DEFAULT 'legacy'")
-    if "hr_employee_id" not in claim_columns:
-        db.execute("ALTER TABLE claims ADD COLUMN hr_employee_id INTEGER")
+    migrate_claims_table(db)
 
     user_columns = {
         row["name"]
@@ -261,6 +271,74 @@ def init_db():
         )
 
     db.commit()
+
+
+def migrate_claims_table(db):
+    claim_info = db.execute("PRAGMA table_info(claims)").fetchall()
+    if not claim_info:
+        return
+
+    cols = {row["name"]: row for row in claim_info}
+    needs_migration = (
+        ("employee_id" in cols and cols["employee_id"]["notnull"] == 1)
+        or ("hr_employee_id" not in cols)
+        or ("claim_source" not in cols)
+    )
+    if not needs_migration:
+        return
+
+    old_columns = [row["name"] for row in claim_info]
+    has_hr_employee_id = "hr_employee_id" in old_columns
+    has_claim_source = "claim_source" in old_columns
+
+    db.execute("PRAGMA foreign_keys = OFF")
+    db.execute("ALTER TABLE claims RENAME TO claims_old")
+    db.execute(
+        """
+        CREATE TABLE claims (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id INTEGER,
+            hr_employee_id INTEGER,
+            basket_cycle_id INTEGER NOT NULL,
+            claim_date TEXT NOT NULL,
+            claim_source TEXT NOT NULL DEFAULT 'legacy',
+            CHECK (
+                (employee_id IS NOT NULL AND hr_employee_id IS NULL)
+                OR (employee_id IS NULL AND hr_employee_id IS NOT NULL)
+            ),
+            UNIQUE(employee_id, basket_cycle_id),
+            UNIQUE(hr_employee_id, basket_cycle_id),
+            FOREIGN KEY(employee_id) REFERENCES employees(id),
+            FOREIGN KEY(hr_employee_id) REFERENCES hr_employees(id),
+            FOREIGN KEY(basket_cycle_id) REFERENCES basket_cycles(id)
+        )
+        """
+    )
+
+    select_hr = "hr_employee_id" if has_hr_employee_id else "NULL"
+    select_source = (
+        "COALESCE(claim_source, CASE WHEN hr_employee_id IS NOT NULL THEN 'hr' ELSE 'legacy' END)"
+        if has_claim_source and has_hr_employee_id
+        else "'legacy'"
+    )
+    if not has_claim_source and has_hr_employee_id:
+        select_source = "CASE WHEN hr_employee_id IS NOT NULL THEN 'hr' ELSE 'legacy' END"
+
+    db.execute(
+        f"""
+        INSERT INTO claims (id, employee_id, hr_employee_id, basket_cycle_id, claim_date, claim_source)
+        SELECT
+            id,
+            CASE WHEN employee_id = 0 THEN NULL ELSE employee_id END AS employee_id,
+            {select_hr} AS hr_employee_id,
+            basket_cycle_id,
+            claim_date,
+            {select_source} AS claim_source
+        FROM claims_old
+        """
+    )
+    db.execute("DROP TABLE claims_old")
+    db.execute("PRAGMA foreign_keys = ON")
 
 
 def current_cycle():
@@ -459,6 +537,16 @@ def find_claimant_by_tag(db, raw_tag):
 def normalize_text(value):
     normalized = unicodedata.normalize("NFD", value)
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn").casefold()
+
+
+def password_has_required_security(password):
+    value = password or ""
+    has_min_length = len(value) >= 8
+    has_upper = bool(re.search(r"[A-Z]", value))
+    has_lower = bool(re.search(r"[a-z]", value))
+    has_number = bool(re.search(r"[0-9]", value))
+    has_special = bool(re.search(r"[^A-Za-z0-9]", value))
+    return has_min_length and has_upper and has_lower and has_number and has_special
 
 
 def is_domelia_department(department_name):
@@ -724,7 +812,7 @@ def claim_basket():
             VALUES (?, ?, ?, ?, ?)
             """,
             (
-                0,
+                None,
                 claimant["employee_id"],
                 cycle["id"],
                 datetime.now().isoformat(timespec="seconds"),
@@ -1060,6 +1148,12 @@ def users():
         if not username or not password:
             flash("Informe usuario e senha.", "error")
             return redirect(url_for("users"))
+        if not password_has_required_security(password):
+            flash(
+                "Senha fraca. Use no minimo 8 caracteres com 1 maiuscula, 1 minuscula, 1 numero e 1 caractere especial.",
+                "error",
+            )
+            return redirect(url_for("users"))
         try:
             db.execute(
                 "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
@@ -1098,4 +1192,5 @@ def logs():
 if __name__ == "__main__":
     with app.app_context():
         init_db()
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    debug_mode = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="127.0.0.1", port=5000, debug=debug_mode)
