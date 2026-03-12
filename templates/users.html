@@ -3,6 +3,7 @@
 <section class="card">
     <h2>Gerenciar logins</h2>
     <p class="hint">Somente superadm pode criar novos acessos.</p>
+    <p class="hint">Regra de senha: minimo 8 caracteres com 1 maiuscula, 1 minuscula, 1 numero e 1 caractere especial.</p>
     <form action="{{ url_for('users') }}" method="post" class="grid two-cols">
         <div>
             <label for="username">Usuario</label>
@@ -10,7 +11,7 @@
         </div>
         <div>
             <label for="password">Senha</label>
-            <input id="password" name="password" type="password" required>
+            <input id="password" name="password" type="password" minlength="8" required>
         </div>
         <div>
             <label for="role">Perfil</label>
